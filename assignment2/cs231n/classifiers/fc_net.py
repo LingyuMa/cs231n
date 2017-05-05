@@ -248,6 +248,7 @@ class FullyConnectedNet(object):
         # layer, etc.                                                              #
         ############################################################################
         cache_list = []
+        dropout_cache_list = []
         input = X
         for i in range(self.num_layers):
             if (i != self.num_layers - 1):
@@ -258,6 +259,9 @@ class FullyConnectedNet(object):
                 else:
                     out, cache = affine_relu_forward(input, self.params['W' + str(i+1)], 
                         self.params['b' + str(i+1)])
+                if (self.use_dropout):
+                    out, dropout_cache = dropout_forward(out, self.dropout_param)
+                    dropout_cache_list.append(dropout_cache)
             else:
                 out, cache = affine_forward(input, self.params['W' + str(i+1)], 
                     self.params['b' + str(i+1)])
@@ -290,6 +294,8 @@ class FullyConnectedNet(object):
         for i in range(self.num_layers):
             loss += 0.5 * self.reg * np.sum(self.params['W' + str(i+1)]**2)
             if (i != 0):
+                if (self.use_dropout):
+                    dx = dropout_backward(dx, dropout_cache_list[-i])
                 if (self.use_batchnorm):
                     dx, dw, db, dgamma, dbeta = affine_batchnorm_relu_backward(dx, cache_list[-1-i])
                     grads['gamma' + str(self.num_layers-i)] = dgamma
@@ -303,5 +309,4 @@ class FullyConnectedNet(object):
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
-
         return loss, grads
